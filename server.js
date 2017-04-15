@@ -8,6 +8,8 @@ const app = express();
 //DEFINE ALL STATIC ROUTES
 app.use(express.static(__dirname + '/default'));
 
+app.use('/redux', express.static(__dirname + '/../node_modules/redux'));
+
 //ROUTES NOT YET HANDLED GET FORWARDED TO INDEX
 app.use('*', express.static(__dirname + '/default/index.html'));
 

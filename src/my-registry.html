@@ -1,0 +1,103 @@
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="shared-styles.html">
+
+<link rel="import" href="../bower_components/vaadin-grid/vaadin-grid.html">
+<link rel="import" href="../bower_components/vaadin-grid/vaadin-grid-column.html">
+<link rel="import" href="../bower_components/paper-button/paper-button.html">
+
+<link rel="import" href="../bower_components/polymer-redux/polymer-redux.html">
+
+<dom-module id="my-registry">
+    <template>
+        <style include="shared-styles">
+            :host {
+                display: block;
+
+                padding: 10px;
+            }
+            
+            .table-header {
+                font-weight: bold;
+                margin: 0;
+            }
+            
+            .give-button {
+                color: white;
+                background-color: darkturquoise
+            }
+        </style>
+
+        <vaadin-grid items="[[registry]]">
+            <vaadin-grid-column>
+                <template class="header">
+                    <p class="table-header">Title</p>
+                </template>
+                <template>[[item.title]]</template>
+            </vaadin-grid-column>
+            
+            <vaadin-grid-column width="50px">
+                <template class="header">
+                    <p class="table-header">Total</p>
+                </template>
+                <template>$[[item.totalPrice]]</template>
+            </vaadin-grid-column>
+            
+            <vaadin-grid-column width="50px">
+                <template class="header">
+                    <p class="table-header">Given</p>
+                </template>
+                <template>$[[item.totalGiven]]</template>
+            </vaadin-grid-column>
+            
+            <vaadin-grid-column width="50px">
+                <template class="header">
+                    <p class="table-header">Comments</p>
+                </template>
+                <template>
+                    <!--
+                    <template is="dom-repeat" items="[[item.comments]]" as="comment">
+                        <p>[[comment.comment]]</p>
+                    </template>
+                    -->
+                </template>
+            </vaadin-grid-column>
+            
+            <vaadin-grid-column width="100px">
+                <template class="header"></template>
+                <template>
+                    <paper-button class$="[[_calcDisabledClass(item.goalReached)]]" raised disabled$="[[item.goalReached]]" on-tap="_giveClicked">Give</paper-button>
+                </template>
+            </vaadin-grid-column>
+        </vaadin-grid>
+    </template>
+
+    <script>
+        class MyRegistry extends ReduxMixin(Polymer.Element) {
+            static get is() { return 'my-registry'; }
+
+            static get properties() {
+                return {
+                    registry: {
+                        type: Array,
+                        statePath: 'registry'
+                    }
+                }
+            }
+
+            _giveClicked(e) {
+                // lets open up the modal form
+                this.dispatch({
+                    type: "GIFT_OPEN",
+                    registryId: e.model.item._id
+                });
+            }
+
+            // if we haven't reached out goal, give it some styling, otherwise let the default 'disabled' styling take over.
+            _calcDisabledClass(goalReached) {
+                return !goalReached ? 'give-button' : '';
+            }
+        }
+
+        window.customElements.define(MyRegistry.is, MyRegistry);
+    </script>
+</dom-module>

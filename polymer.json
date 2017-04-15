@@ -3,6 +3,7 @@
   "shell": "src/my-app.html",
   "fragments": [
     "src/my-home.html",
+    "src/my-registry.html",
     "src/my-view404.html"
   ],
   "sources": [
@@ -20,8 +21,7 @@
   "builds": [{
       "bundle": true,
       "js": {
-        "minify": true,
-        "compile": true
+        "minify": true
       },
       "css": {"minify": true},
       "html": {"minify": true}
