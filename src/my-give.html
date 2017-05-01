@@ -7,7 +7,7 @@
 
 <link rel="import" href="../bower_components/polymer-redux/polymer-redux.html">
 
-<dom-module id="my-registry">
+<dom-module id="my-give">
     <template>
         <style include="shared-styles">
             :host {
@@ -72,8 +72,8 @@
     </template>
 
     <script>
-        class MyRegistry extends ReduxMixin(Polymer.Element) {
-            static get is() { return 'my-registry'; }
+        class MyGive extends ReduxMixin(Polymer.Element) {
+            static get is() { return 'my-give'; }
 
             static get properties() {
                 return {
@@ -85,11 +85,10 @@
             }
 
             _giveClicked(e) {
-                // lets open up the modal form
-                this.dispatch({
-                    type: "GIFT_OPEN",
-                    registryId: e.model.item._id
-                });
+                // lets send them to checkout page with this registry item id.
+                window.history.pushState({}, 'Checkout', '/checkout/'+e.model.item._id);
+                // fire the location-changed event so <app-location> will change the page.
+                window.dispatchEvent(new CustomEvent('location-changed'));
             }
 
             // if we haven't reached out goal, give it some styling, otherwise let the default 'disabled' styling take over.
@@ -98,6 +97,6 @@
             }
         }
 
-        window.customElements.define(MyRegistry.is, MyRegistry);
+        window.customElements.define(MyGive.is, MyGive);
     </script>
 </dom-module>

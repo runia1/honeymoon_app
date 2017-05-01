@@ -60,7 +60,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <!-- Load webcomponents-loader.js to check and load any polyfills your browser needs -->
     <script src="/bower_components/webcomponentsjs/webcomponents-loader.js"></script>
     
+    <!-- Load redux library -->
     <script src="/redux/dist/redux.js"></script>
+
+    <!-- Load the Client component -->
+    <script src="https://js.braintreegateway.com/web/3.12.0/js/client.min.js"></script>
+
+    <!-- Load the Hosted Fields component -->
+    <script src="https://js.braintreegateway.com/web/3.12.0/js/hosted-fields.min.js"></script>
 
     <!-- Load your application shell -->
     <link rel="import" href="/src/my-app.html">
@@ -74,10 +81,21 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         min-height: 100vh;
         background-color: #eeeeee;
       }
+
+      iframe {
+        height: 50px;
+      }
     </style>
   </head>
   <body>
-    <my-app></my-app>
-    <!-- Built with love using Polymer Starter Kit -->
+    <my-app>
+      <div id="braintree-fields">
+        <div id="card-number" style="height: 50px;"></div>
+        <div id="cvv" style="height: 50px;"></div>
+        <div id="expiration-date" style="height: 50px;"></div>
+      </div>
+    </my-app>
+  
+  
   </body>
 </html>

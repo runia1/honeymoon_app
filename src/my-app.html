@@ -22,8 +22,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../bower_components/paper-icon-button/paper-icon-button.html">
 <link rel="import" href="my-icons.html">
 <link rel="import" href="../bower_components/paper-dialog/paper-dialog.html">
-<link rel="import" href="../bower_components/paper-dialog-scrollable/paper-dialog-scrollable.html">
-<link rel="import" href="../bower_components/iron-form/iron-form.html">
+<link rel="import" href="../bower_components/paper-spinner/paper-spinner-lite.html">
 
 <link rel="import" href="../bower_components/polymer-redux/polymer-redux.html">
 
@@ -110,7 +109,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         <app-toolbar>Menu</app-toolbar>
         <iron-selector selected="[[page]]" attr-for-selected="name" class="drawer-list" role="navigation">
           <a name="home" href="/home">Home</a>
-          <a name="registry" href="/registry">Registry</a>
+          <a name="give" href="/give">Give</a>
         </iron-selector>
       </app-drawer>
 
@@ -132,37 +131,45 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             selected="[[page]]"
             attr-for-selected="name"
             fallback-selection="view404"
+            selected-attribute="selected"
             role="main">
           <my-home name="home"></my-home>
-          <my-registry name="registry"></my-registry>
+          <my-give name="give"></my-give>
+          <my-checkout name="checkout">
+            <slot id="#braintree-fields"></slot>
+          </my-checkout>
           <my-view404 name="view404"></my-view404>
         </iron-pages>
       </app-header-layout>
     </app-drawer-layout>
 
     <paper-dialog id="modal" modal>
-      <paper-dialog-scrollable>
-        <iron-from id="giveForm" on-iron-form-presubmit="_giveFormSubmitted">
-          <form id="giveFormChild" on-iron-form-presubmit="_giveFormSubmitted">
-            <input type="hidden" id="registryId" name="registryId" />
-          </form>
-        </iron-from>
-      </paper-dialog-scrollable>
+      <paper-spinner-lite active></paper-spinner-lite>
+    </paper-dialog>
+
+    <paper-dialog id="error" modal>
+      <h3 id="errorMessage">[[error]]</h3>
       <div class="buttons">
-        <paper-button on-tap="_closeClicked">Close</paper-button>
-        <paper-button on-tap="_giveClicked">Give</paper-button>
+        <paper-button on-tap="_closeError">Close</paper-button>
+      </div>
+    </paper-dialog>
+
+    <paper-dialog id="paymentSuccess" modal>
+      <h3>Your payment was successful!</h3>
+      <h3>Thank you!</h3>
+      <div class="buttons">
+        <paper-button on-tap="_closePaymentSuccess">Close</paper-button>
       </div>
     </paper-dialog>
   </template>
 
   <script>
-    // define reducer??
     const initialState = {
         registry: [],
         user: {},
         loading: false,
+        paymentSuccess: false,
         error: null,
-        modalOpen: false,
         registryId: null
     };
     
@@ -202,17 +209,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                 });
                 
             // GIFT ACTIONS
-            case "GIFT_OPEN":
-                return Object.assign({}, state, {
-                    modalOpen: true,
-                    registryId: action.registryId
-                });
-            case "GIFT_CLOSE":
-                return Object.assign({}, state, {
-                    modalOpen: false,
-                    registryId: null
-                });
-                
             case "GIFT_CREATE":
                 return Object.assign({}, state, {
                     loading: true
@@ -222,13 +218,30 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                 return Object.assign({}, state, {
                     registry: action.data.registry,
                     user: action.data.user,
-                    loading: false
+                    loading: false,
+                    paymentSuccess: true
                 });
                 
             case "GIFT_CREATE_ERROR":
                 return Object.assign({}, state, {
                     loading: false,
                     error: action.message
+                });
+                
+            // UI ACTIONS
+            case "CLOSE_ERROR":
+                return Object.assign({}, state, {
+                    error: null
+                });
+                
+            case "OPEN_ERROR":
+                return Object.assign({}, state, {
+                    error: action.message
+                });
+                
+            case "CLOSE_PAYMENT_SUCCESS":
+                return Object.assign({}, state, {
+                    paymentSuccess: false
                 });
         }
         
@@ -248,13 +261,17 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             reflectToAttribute: true,
             observer: '_pageChanged'
           },
-          modalOpen: {
-            type: Boolean,
-            statePath: 'modalOpen'
-          },
           loading: {
             type: Boolean,
-              statePath: 'loading'
+            statePath: 'loading'
+          },
+          error: {
+            type: String,
+            statePath: 'error'
+          },
+          paymentSuccess: {
+            type: Boolean,
+            statePath: 'paymentSuccess'
           }
         };
       }
@@ -263,7 +280,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         return [
           '_routePageChanged(routeData.page)',
           '_modalOpenChanged(modalOpen)',
-          '_loadingChanged(loading)'
+          '_loadingChanged(loading)',
+          '_errorChanged(error)',
+          '_paymentSuccessChanged(paymentSuccess)'
         ];
       }
         
@@ -271,44 +290,39 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           super.connectedCallback();
 
           // set up the websocket handle
-          const ws = new WebSocket('wss://honeymoon.mrunia.com/wss');
+          window.wss = new WebSocket('wss://honeymoon.mrunia.com/wss');
 
-          ws.addEventListener('open', () => {
+          window.wss.addEventListener('open', () => {
               const action = {
                   type: "CONNECTION_OPEN"
               };
-              
-              ws.send(JSON.stringify(action));
+
+              window.wss.send(JSON.stringify(action));
               this.dispatch(action);
           });
 
-          ws.addEventListener('close', () => {
+          window.wss.addEventListener('close', () => {
               const action = {
-                  type: "CONNECTION_OFFLINE"
+                  type: "CONNECTION_OFFLINE",
+                  message: "Looks like you've lost internet connection, or our servers are down. Please try again in a few minutes!"
               };
-              
+
               this.dispatch(action);
           });
 
-          ws.addEventListener('error', (e) => {
+          window.wss.addEventListener('error', (e) => {
               const action = {
                   type: "CONNECTION_ERROR",
-                  message: e
+                  message: e.message
               };
-              
+
               this.dispatch(action);
           });
 
-          ws.addEventListener('message', (message) => {
+          window.wss.addEventListener('message', (message) => {
               const action = JSON.parse(message.data);
-              
+
               this.dispatch(action);
-          });
-          
-          this.$.giveForm.addEventListener('iron-form-presubmit', (e) => {
-              e.preventDefault();
-              console.log('got to here');
-              //this._giveFormSubmitted(e);
           });
       }
 
@@ -342,47 +356,55 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       _showPage404() {
         this.page = 'view404';
       }
-
-      _closeClicked() {
-        this.dispatch({
-            type: 'GIFT_CLOSE'
-        });
-      }
-
-      _modalOpenChanged(modalOpen) {
-        if (modalOpen) {
-          // set the registryId in the form
-          const state = this.getState();
-          this.$.registryId.value = state.registryId;
-          
-          this.$.modal.open();
-        }
-        else {
-          this.$.registryId.value = '';
-          this.$.modal.close();
-        }
-      }
-      
-      _giveClicked() {
-        // submit the form
-        this.$.giveFormChild.submit();
-      }
-
-      _giveFormSubmitted(e) {
-        e.preventDefault();
-          console.log('give form submitted');
-          
-        //const formData = this.$.giveForm.serializeForm();
-        //console.dir(formData);
-      }
       
       _loadingChanged(loading) {
           if (loading) {
-              
+              this.$.modal.open();
           }
           else {
-              
+              this.$.modal.close();
           }
+      }
+      
+      _errorChanged(error) {
+          if (error !== null) {
+              //TODO: go and send error message up websocket so I get an email about what happened!
+              // in case the error message is undefined, give them a generic error message.
+              if (error === undefined) {
+                  this.error = "An error occurred, please try again!";
+              }
+              this.$.error.open();
+          }
+          else {
+              this.$.error.close();
+          }
+      }
+
+      _closeError() {
+        this.dispatch({
+            type: "CLOSE_ERROR"
+        });
+      }
+
+      _paymentSuccessChanged(paymentSuccess) {
+          if (paymentSuccess) {
+              // move them to the give page
+              window.history.replaceState({}, 'Checkout Complete', '/give');
+              // fire the location-changed event so <app-location> will change the page.
+              window.dispatchEvent(new CustomEvent('location-changed'));
+              
+              // open the modal
+              this.$.paymentSuccess.open();
+          }
+          else {
+              this.$.paymentSuccess.close();
+          }
+      }
+
+      _closePaymentSuccess() {
+          this.dispatch({
+              type: "CLOSE_PAYMENT_SUCCESS"
+          });
       }
     }
 

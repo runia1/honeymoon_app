@@ -1,0 +1,224 @@
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="shared-styles.html">
+<link rel="import" href="../bower_components/app-route/app-location.html">
+<link rel="import" href="../bower_components/app-route/app-route.html">
+
+<link rel="import" href="../bower_components/paper-card/paper-card.html">
+<link rel="import" href="../bower_components/iron-form/iron-form.html">
+<link rel="import" href="../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../bower_components/paper-input/paper-textarea.html">
+<link rel="import" href="../bower_components/paper-button/paper-button.html">
+
+
+<dom-module id="my-checkout">
+    <template>
+        <style include="shared-styles">
+            :host {
+                display: block;
+
+                padding: 10px;
+            }
+            
+            .main-card {
+                width: 100%;
+                padding: 15px;
+            }
+        </style>
+        
+        <app-location route="{{route}}"></app-location>
+        <app-route
+                route="{{route}}"
+                pattern="/checkout/:registryId"
+                data="{{routeData}}"
+                tail="{{subroute}}"></app-route>
+        
+        <paper-card class="main-card">
+            <iron-form id="giveForm" on-iron-form-presubmit="_giveFormSubmitted">
+                <form id="giveFormChild">
+                    <input type="hidden" id="registryId" name="registryId" value="[[routeData.registryId]]" />
+                    <input type="hidden" id="paymentMethodNonce" name="paymentMethodNonce" />
+                    
+                    <h2>[[item.title]]</h2>
+                    <h4>[[item.description]]</h4>
+                    
+                    <paper-textarea name="amount" label="Amount"></paper-textarea>
+                    <paper-textarea name="comment" label="Leave a comment"></paper-textarea>
+                    <paper-textarea name="nickname" label="Tell us who you are (we'll keep your gift anonymous)"></paper-textarea>
+                    
+                    <!-- THESE are our braintree hosted fields -->
+                    <slot></slot>
+                    
+                    <paper-button raised on-tap="_giveClicked">Give</paper-button>
+                </form>
+            </iron-form>
+        </paper-card>
+    </template>
+
+    <script>
+        class MyCheckout extends ReduxMixin(Polymer.Element) {
+            static get is() { return 'my-checkout'; }
+
+            static get properties() {
+                return {
+                    user: {
+                        type: Array,
+                        statePath: 'user'
+                    },
+                    nonce: {
+                        type: String
+                    },
+                    hostedFieldsInstance: {
+                        type: Object,
+                        value: null
+                    },
+                    item: {
+                        type: Object,
+                        value: {}
+                    },
+                    selected: {
+                        type: Boolean,
+                        value: false
+                    }
+                }
+            }
+
+            static get observers() {
+                return [
+                    '_userChanged(user)',
+                    '_selectedChanged(selected)'
+                ];
+            }
+            
+            _userChanged(user) {
+                if ((this.hostedFieldsInstance === null) && user.clientToken) {
+                    // lets set up braintree
+                    braintree.client.create({
+                        authorization: user.clientToken
+                    }, (err, clientInstance) => {
+                        if (err) {
+                            this.dispatch({
+                                type: "OPEN_ERROR",
+                                message: err.message
+                            });
+                            //TODO: remove
+                            console.error(err);
+                            return;
+                        }
+
+                        braintree.hostedFields.create({
+                            client: clientInstance,
+                            styles: {
+                                'input': {
+                                    'font-size': '15px'
+                                },
+                                'iframe': {
+                                    'height': '50px'
+                                }
+                                /*
+                                'input.invalid': {
+                                    'color': 'red'
+                                },
+                                'input.valid': {
+                                    'color': 'green'
+                                }
+                                */
+                            },
+                            fields: {
+                                number: {
+                                    selector: '#card-number',
+                                    placeholder: 'Card Number'
+                                },
+                                cvv: {
+                                    selector: '#cvv',
+                                    placeholder: 'CVV'
+                                },
+                                expirationDate: {
+                                    selector: '#expiration-date',
+                                    placeholder: 'Expiration Date'
+                                }
+                            }
+                        }, (hostedFieldsErr, hostedFieldsInstance) => {
+                            if (hostedFieldsErr) {
+                                this.dispatch({
+                                    type: "OPEN_ERROR",
+                                    message: hostedFieldsErr.message
+                                });
+                                //TODO: remove
+                                console.error(hostedFieldsErr);
+                                return;
+                            }
+                            
+                            this.hostedFieldsInstance = hostedFieldsInstance;
+                        });
+                    });
+                }
+            }
+            
+            _giveClicked() {
+                this.$.giveForm.submit();
+            }
+            
+            _giveFormSubmitted(e) {
+                e.preventDefault();
+
+                let action = {
+                    type: "GIFT_CREATE"
+                };
+
+                // tell REDUX so it will trigger the loading right away
+                this.dispatch(action);
+                
+                // when a user clicks on GIVE, tokenize their card data and submit via websocket.
+                this.hostedFieldsInstance.tokenize((tokenizeErr, payload) => {
+                    if (tokenizeErr) {
+                        this.dispatch({
+                            type: "OPEN_ERROR",
+                            message: tokenizeErr.message
+                        });
+                        //TODO: remove
+                        console.error(tokenizeErr);
+                        return;
+                    }
+
+                    // Put `payload.nonce` into the `payment_method_nonce` input, and then
+                    // submit the form. Alternatively, you could send the nonce to your server
+                    // with AJAX.
+                    this.$.paymentMethodNonce.value = payload.nonce;
+
+                    // grab data from form
+                    const formData = this.$.giveForm.serializeForm();
+                    
+                    // send form data with the action
+                    action.data = formData;
+                    
+                    // send action up WSS
+                    window.wss.send(JSON.stringify(action));
+                });
+            }
+
+            _selectedChanged(selected) {
+                if (selected) {
+                    const updateItem = () => {
+                        const state = this.getState();
+                        
+                        if (state.registry.length) {
+                            state.registry.forEach((item) => {
+                                if (item._id === this.routeData.registryId) {
+                                    // update the registry item description in the form.
+                                    this.item = item;
+                                }
+                            });
+                        }
+                        else {
+                            setTimeout(updateItem, 100);
+                        }
+                    };
+                    
+                    updateItem();
+                }
+            }
+        }
+
+        window.customElements.define(MyCheckout.is, MyCheckout);
+    </script>
+</dom-module>
