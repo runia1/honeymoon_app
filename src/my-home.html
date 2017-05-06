@@ -11,6 +11,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../bower_components/polymer/polymer-element.html">
 <link rel="import" href="shared-styles.html">
 
+<link rel="import" href="../bower_components/paper-card/paper-card.html">
+<link rel="import" href="../bower_components/paper-button/paper-button.html">
+
 <dom-module id="my-home">
   <template>
     <style include="shared-styles">
@@ -19,20 +22,40 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
         padding: 10px;
       }
+
+      .main-card {
+        width: 100%;
+        padding: 15px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      
+      .give {
+        color: white;
+        background-color: darkturquoise;
+      }
+      
     </style>
 
-    <div class="card">
-      <div class="circle">1</div>
-      <h1>View One</h1>
-      <p>Ut labores minimum atomorum pro. Laudem tibique ut has.</p>
-      <p>Lorem ipsum dolor sit amet, per in nusquam nominavi periculis, sit elit oportere ea.Lorem ipsum dolor sit amet, per in nusquam nominavi periculis, sit elit oportere ea.Cu mei vide viris gloriatur, at populo eripuit sit.</p>
-    </div>
+    <paper-card class="main-card">
+        <h2>Welcome to our honeymoon site!</h2>
+        <h3>Instead of doing the traditional wedding gift registry, we would be so blessed if you would give towards our honeymoon!</h3>
+        <paper-button class="give" raised on-tap="_giveClicked">Give</paper-button>
+    </paper-card>
     
   </template>
 
   <script>
     class MyHome extends Polymer.Element {
       static get is() { return 'my-home'; }
+
+        _giveClicked() {
+            // lets send them to give
+            window.history.pushState({}, 'Give', '/give');
+            // fire the location-changed event so <app-location> will change the page.
+            window.dispatchEvent(new CustomEvent('location-changed'));
+        }
     }
 
     window.customElements.define(MyHome.is, MyHome);
