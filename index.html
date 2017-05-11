@@ -63,11 +63,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <!-- Load redux library -->
     <script src="/redux/dist/redux.js"></script>
 
-    <!-- Load the Client component -->
-    <script src="https://js.braintreegateway.com/web/3.12.0/js/client.min.js"></script>
-
-    <!-- Load the Hosted Fields component -->
-    <script src="https://js.braintreegateway.com/web/3.12.0/js/hosted-fields.min.js"></script>
+    <!-- Load square's client side lib -->
+    <script src="https://js.squareup.com/v2/paymentform"></script>
 
     <!-- Load your application shell -->
     <link rel="import" href="/src/my-app.html">
@@ -81,18 +78,20 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         min-height: 100vh;
         background-color: #eeeeee;
       }
-
-      iframe {
+      
+      .hosted-field {
         height: 50px;
+        border-bottom: 1px solid black;
       }
     </style>
   </head>
   <body>
     <my-app>
-      <div id="braintree-fields">
-        <div id="card-number" style="height: 50px;"></div>
-        <div id="cvv" style="height: 50px;"></div>
-        <div id="expiration-date" style="height: 50px;"></div>
+      <div id="hosted-fields">
+        <div class="hosted-field" id="card-number" style="height: 50px;"></div>
+        <div class="hosted-field" id="cvv" style="height: 50px;"></div>
+        <div class="hosted-field" id="expiration-date" style="height: 50px;"></div>
+        <div class="hosted-field" id="postal-code" style="height: 50px;"></div>
       </div>
     </my-app>
   

@@ -45,7 +45,7 @@
                     <paper-textarea name="comment" label="Leave a comment"></paper-textarea>
                     <paper-textarea name="nickname" label="Tell us who you are (we'll keep your gift anonymous)"></paper-textarea>
                     
-                    <!-- THESE are our braintree hosted fields -->
+                    <!-- THESE are our hosted fields -->
                     <slot></slot>
                     
                     <paper-button raised on-tap="_giveClicked">Give</paper-button>
@@ -90,67 +90,100 @@
             }
             
             _userChanged(user) {
-                if ((this.hostedFieldsInstance === null) && user.clientToken) {
-                    // lets set up braintree
-                    braintree.client.create({
-                        authorization: user.clientToken
-                    }, (err, clientInstance) => {
-                        if (err) {
-                            this.dispatch({
-                                type: "OPEN_ERROR",
-                                message: err.message
-                            });
-                            //TODO: remove
-                            console.error(err);
-                            return;
-                        }
-
-                        braintree.hostedFields.create({
-                            client: clientInstance,
-                            styles: {
-                                'input': {
-                                    'font-size': '15px'
-                                },
-                                'iframe': {
-                                    'height': '50px'
-                                }
-                                /*
-                                'input.invalid': {
-                                    'color': 'red'
-                                },
-                                'input.valid': {
-                                    'color': 'green'
-                                }
-                                */
-                            },
-                            fields: {
-                                number: {
-                                    selector: '#card-number',
-                                    placeholder: 'Card Number'
-                                },
-                                cvv: {
-                                    selector: '#cvv',
-                                    placeholder: 'CVV'
-                                },
-                                expirationDate: {
-                                    selector: '#expiration-date',
-                                    placeholder: 'Expiration Date'
-                                }
+                if ((this.hostedFieldsInstance === null) && user.squareAppId) {
+                    // lets set up our square hosted fields
+                    this.hostedFieldsInstance = new SqPaymentForm({
+                        applicationId: user.squareAppId,
+                        inputClass: 'sq-input',
+                        inputStyles: [
+                            {
+                                fontSize: '15px'
                             }
-                        }, (hostedFieldsErr, hostedFieldsInstance) => {
-                            if (hostedFieldsErr) {
+                        ],
+                        cardNumber: {
+                            elementId: 'card-number',
+                            placeholder: '•••• •••• •••• ••••'
+                        },
+                        cvv: {
+                            elementId: 'cvv',
+                            placeholder: 'CVV'
+                        },
+                        expirationDate: {
+                            elementId: 'expiration-date',
+                            placeholder: 'MM/YY'
+                        },
+                        postalCode: {
+                            elementId: 'postal-code',
+                            placeholder: 'Zip'
+                        },
+                        callbacks: {
+                            cardNonceResponseReceived: (errors, nonce, cardData) => {
+                                if (errors) {
+                                    // errors is an array of errors
+                                    let errorMessage = 'The following errors occurred: ';
+                                    errors.forEach((error, index) => {
+                                        errorMessage += `${index}. ${error.message},  `;
+                                    });
+                                    
+                                    this.dispatch({
+                                        type: "OPEN_ERROR",
+                                        message: errorMessage
+                                    });
+                                }
+                                // No errors occurred. Extract the card nonce.
+                                else {
+                                    // put nonce in the hidden input in the form
+                                    this.$.paymentMethodNonce.value = nonce;
+
+                                    // grab data from form
+                                    //const formData = this.$.giveForm.serializeForm();
+                                    //console.log(formData);
+
+                                    // send action up WSS
+                                    window.wss.send(JSON.stringify({
+                                        type: "GIFT_CREATE",
+                                        data: this.$.giveForm.serializeForm()
+                                    }));
+                                }
+                            },
+
+                            unsupportedBrowserDetected: () => {
                                 this.dispatch({
                                     type: "OPEN_ERROR",
-                                    message: hostedFieldsErr.message
+                                    message: "Your browser is out of date and not supported, you should know better than to come here with an out of date browser! You're better than that!"
                                 });
-                                //TODO: remove
-                                console.error(hostedFieldsErr);
-                                return;
-                            }
-                            
-                            this.hostedFieldsInstance = hostedFieldsInstance;
-                        });
+                            },
+
+                            // Fill in these cases to respond to various events that can occur while a
+                            // buyer is using the payment form.
+                            inputEventReceived: (inputEvent) => {
+                                switch (inputEvent.eventType) {
+                                    case 'focusClassAdded':
+                                        // Handle as desired
+                                        break;
+                                    case 'focusClassRemoved':
+                                        // Handle as desired
+                                        break;
+                                    case 'errorClassAdded':
+                                        // Handle as desired
+                                        break;
+                                    case 'errorClassRemoved':
+                                        // Handle as desired
+                                        break;
+                                    case 'cardBrandChanged':
+                                        // Handle as desired
+                                        break;
+                                    case 'postalCodeChanged':
+                                        // Handle as desired
+                                        break;
+                                }
+                            },
+
+                            paymentFormLoaded: () => {}
+                        }
                     });
+                    
+                    this.hostedFieldsInstance.build();
                 }
             }
             
@@ -161,39 +194,13 @@
             _giveFormSubmitted(e) {
                 e.preventDefault();
 
-                let action = {
-                    type: "GIFT_CREATE"
-                };
-
                 // tell REDUX so it will trigger the loading right away
-                this.dispatch(action);
-                
-                // when a user clicks on GIVE, tokenize their card data and submit via websocket.
-                this.hostedFieldsInstance.tokenize((tokenizeErr, payload) => {
-                    if (tokenizeErr) {
-                        this.dispatch({
-                            type: "OPEN_ERROR",
-                            message: tokenizeErr.message
-                        });
-                        //TODO: remove
-                        console.error(tokenizeErr);
-                        return;
-                    }
-
-                    // Put `payload.nonce` into the `payment_method_nonce` input, and then
-                    // submit the form. Alternatively, you could send the nonce to your server
-                    // with AJAX.
-                    this.$.paymentMethodNonce.value = payload.nonce;
-
-                    // grab data from form
-                    const formData = this.$.giveForm.serializeForm();
-                    
-                    // send form data with the action
-                    action.data = formData;
-                    
-                    // send action up WSS
-                    window.wss.send(JSON.stringify(action));
+                this.dispatch({
+                    type: "GIFT_CREATE"
                 });
+                
+                // when a user clicks on GIVE, request a nonce for their card.
+                this.hostedFieldsInstance.requestCardNonce();
             }
 
             _selectedChanged(selected) {

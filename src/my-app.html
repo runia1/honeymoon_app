@@ -136,7 +136,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           <my-home name="home"></my-home>
           <my-give name="give"></my-give>
           <my-checkout name="checkout">
-            <slot id="#braintree-fields"></slot>
+            <slot id="#hosted-fields"></slot>
           </my-checkout>
           <my-view404 name="view404"></my-view404>
         </iron-pages>
@@ -217,9 +217,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             case "GIFT_CREATED":
                 return Object.assign({}, state, {
                     registry: action.data.registry,
-                    user: action.data.user,
                     loading: false,
                     paymentSuccess: true
+                });
+                
+            case "PEER_GIFT_CREATED":
+                return Object.assign({}, state, {
+                    registry: action.data.registry
                 });
                 
             case "GIFT_CREATE_ERROR":
@@ -236,7 +240,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                 
             case "OPEN_ERROR":
                 return Object.assign({}, state, {
-                    error: action.message
+                    error: action.message,
+                    loading: false
                 });
                 
             case "CLOSE_PAYMENT_SUCCESS":
