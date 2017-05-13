@@ -5,6 +5,8 @@
     "src/my-home.html",
     "src/my-give.html",
     "src/my-checkout.html",
+    "src/my-photos.html",
+    "src/my-rsvp.html",
     "src/my-view404.html"
   ],
   "sources": [

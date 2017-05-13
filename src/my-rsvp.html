@@ -1,0 +1,40 @@
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="shared-styles.html">
+
+<link rel="import" href="../bower_components/paper-card/paper-card.html">
+<link rel="import" href="../bower_components/paper-button/paper-button.html">
+
+<dom-module id="my-rsvp">
+    <template>
+        <style include="shared-styles">
+            :host {
+                display: block;
+
+                padding: 10px;
+            }
+
+            .main-card {
+                width: 100%;
+                padding: 15px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+            }
+
+        </style>
+
+        <paper-card class="main-card">
+            <h2>Nothing to see yet!</h2>
+        </paper-card>
+
+    </template>
+
+    <script>
+        class MyRsvp extends Polymer.Element {
+            static get is() { return 'my-rsvp'; }
+
+        }
+
+        window.customElements.define(MyRsvp.is, MyRsvp);
+    </script>
+</dom-module>

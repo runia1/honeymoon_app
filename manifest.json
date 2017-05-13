@@ -1,10 +1,10 @@
 {
-  "name": "Max & Emily 2k17",
-  "short_name": "Max & Emily 2k17",
+  "name": "Max & Emily",
+  "short_name": "Max & Emily",
   "start_url": "/?homescreen=1",
   "display": "standalone",
-  "theme_color": "#3f51b5",
-  "background_color": "#3f51b5",
+  "theme_color": "#ffc4a2",
+  "background_color": "#ffc4a2",
   "icons": [
     {
       "src": "images/manifest/icon-192x192.png",

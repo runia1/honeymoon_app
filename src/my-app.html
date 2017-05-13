@@ -22,6 +22,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../bower_components/paper-icon-button/paper-icon-button.html">
 <link rel="import" href="my-icons.html">
 <link rel="import" href="../bower_components/paper-dialog/paper-dialog.html">
+<link rel="import" href="../bower_components/paper-dialog-scrollable/paper-dialog-scrollable.html">
 <link rel="import" href="../bower_components/paper-spinner/paper-spinner-lite.html">
 
 <link rel="import" href="../bower_components/polymer-redux/polymer-redux.html">
@@ -110,6 +111,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         <iron-selector selected="[[page]]" attr-for-selected="name" class="drawer-list" role="navigation">
           <a name="home" href="/home">Home</a>
           <a name="give" href="/give">Give</a>
+          <a name="photos" href="/photos">Engagement Photos</a>
+          <a name="rsvp" href="/rsvp">RSVP</a>
         </iron-selector>
       </app-drawer>
 
@@ -138,6 +141,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           <my-checkout name="checkout">
             <slot id="#hosted-fields"></slot>
           </my-checkout>
+          <my-photos></my-photos>
+          <my-rsvp></my-rsvp>
           <my-view404 name="view404"></my-view404>
         </iron-pages>
       </app-header-layout>
@@ -161,6 +166,24 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         <paper-button on-tap="_closePaymentSuccess">Close</paper-button>
       </div>
     </paper-dialog>
+
+    <paper-dialog id="comments" modal>
+      <paper-dialog-scrollable>
+        <dom-if if="[[!comments.length]]">
+          <template>
+            <h4>Be the first to leave a comment for us! :)</h4>
+          </template>
+        </dom-if>
+        <dom-repeat items="[[comments]]" as="comment">
+          <template>
+            <h4>"[[comment.comment]]"</h4>
+          </template>
+        </dom-repeat>
+      </paper-dialog-scrollable>
+      <div class="buttons">
+        <paper-button on-tap="_closeComments">Close</paper-button>
+      </div>
+    </paper-dialog>
   </template>
 
   <script>
@@ -170,10 +193,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         loading: false,
         paymentSuccess: false,
         error: null,
-        registryId: null
+        registryId: null,
+        comments: null
     };
     
-    const store = Redux.createStore((state = initialState, action) => {
+    const store1 = Redux.createStore((state = initialState, action) => {
         console.log("calling reducer with action type: " + action.type);
         
         switch (action.type) {
@@ -200,7 +224,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                 return Object.assign({}, state, {
                     error: action.message
                 });
-                break;
                 
             case "CONNECTION_ERROR":
                 return Object.assign({}, state, {
@@ -233,27 +256,38 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                 });
                 
             // UI ACTIONS
-            case "CLOSE_ERROR":
-                return Object.assign({}, state, {
-                    error: null
-                });
-                
             case "OPEN_ERROR":
                 return Object.assign({}, state, {
                     error: action.message,
                     loading: false
                 });
                 
+            case "CLOSE_ERROR":
+                return Object.assign({}, state, {
+                    error: null
+                });
+                
+            // this is opened when the payment comes back successful from the websocket
             case "CLOSE_PAYMENT_SUCCESS":
                 return Object.assign({}, state, {
                     paymentSuccess: false
+                });
+                
+            case "OPEN_COMMENTS":
+                return Object.assign({}, state, {
+                    comments: action.comments
+                });
+                
+            case "CLOSE_COMMENTS":
+                return Object.assign({}, state, {
+                    comments: null
                 });
         }
         
         return state;
     });
     
-    const ReduxMixin = PolymerRedux(store);
+    const ReduxMixin = PolymerRedux(store1);
     
     class MyApp extends ReduxMixin(Polymer.Element) {
 
@@ -277,6 +311,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           paymentSuccess: {
             type: Boolean,
             statePath: 'paymentSuccess'
+          },
+          comments: {
+            type: Array,
+            statePath: 'comments'
           }
         };
       }
@@ -287,7 +325,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           '_modalOpenChanged(modalOpen)',
           '_loadingChanged(loading)',
           '_errorChanged(error)',
-          '_paymentSuccessChanged(paymentSuccess)'
+          '_paymentSuccessChanged(paymentSuccess)',
+          '_commentsChanged(comments)',
         ];
       }
         
@@ -409,6 +448,22 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       _closePaymentSuccess() {
           this.dispatch({
               type: "CLOSE_PAYMENT_SUCCESS"
+          });
+      }
+
+      _commentsChanged(comments) {
+          if (comments) {
+              // open the modal
+              this.$.comments.open();
+          }
+          else {
+              this.$.comments.close();
+          }
+      }
+
+      _closeComments() {
+          this.dispatch({
+              type: "CLOSE_COMMENTS"
           });
       }
     }

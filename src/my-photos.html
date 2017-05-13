@@ -1,0 +1,40 @@
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="shared-styles.html">
+
+<link rel="import" href="../bower_components/paper-card/paper-card.html">
+<link rel="import" href="../bower_components/paper-button/paper-button.html">
+
+<dom-module id="my-photos">
+    <template>
+        <style include="shared-styles">
+            :host {
+                display: block;
+
+                padding: 10px;
+            }
+
+            .main-card {
+                width: 100%;
+                padding: 15px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+            }
+
+        </style>
+
+        <paper-card class="main-card">
+            <h2>Nothing to see yet!</h2>
+        </paper-card>
+
+    </template>
+
+    <script>
+        class MyPhotos extends Polymer.Element {
+            static get is() { return 'my-photos'; }
+            
+        }
+
+        window.customElements.define(MyPhotos.is, MyPhotos);
+    </script>
+</dom-module>

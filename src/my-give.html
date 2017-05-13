@@ -4,6 +4,8 @@
 <link rel="import" href="../bower_components/vaadin-grid/vaadin-grid.html">
 <link rel="import" href="../bower_components/vaadin-grid/vaadin-grid-column.html">
 <link rel="import" href="../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../bower_components/iron-icons/iron-icons.html">
+<link rel="import" href="../bower_components/paper-icon-button/paper-icon-button.html">
 
 <link rel="import" href="../bower_components/polymer-redux/polymer-redux.html">
 
@@ -19,11 +21,6 @@
             .table-header {
                 font-weight: bold;
                 margin: 0;
-            }
-            
-            .give-button {
-                color: white;
-                background-color: darkturquoise;
             }
         </style>
 
@@ -54,11 +51,7 @@
                     <p class="table-header">Comments</p>
                 </template>
                 <template>
-                    <!--
-                    <template is="dom-repeat" items="[[item.comments]]" as="comment">
-                        <p>[[comment.comment]]</p>
-                    </template>
-                    -->
+                    <paper-icon-button icon="visibility" on-tap="_showComments"></paper-icon-button>
                 </template>
             </vaadin-grid-column>
             
@@ -94,6 +87,14 @@
             // if we haven't reached out goal, give it some styling, otherwise let the default 'disabled' styling take over.
             _calcDisabledClass(goalReached) {
                 return !goalReached ? 'give-button' : '';
+            }
+
+            _showComments(e) {
+                // tell redux that we have comments to show
+                this.dispatch({
+                    type: "OPEN_COMMENTS",
+                    comments: e.model.item.comments
+                });
             }
         }
 
