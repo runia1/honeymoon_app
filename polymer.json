@@ -16,12 +16,14 @@
   ],
   "extraDependencies": [
     "manifest.json",
-    "bower_components/webcomponentsjs/*.js"
+    "bower_components/webcomponentsjs/*.js",
+    "node_modules/redux/dist/redux.js"
   ],
   "lint": {
     "rules": ["polymer-2"]
   },
   "builds": [{
+      "addServiceWorker": true,
       "bundle": true,
       "js": {"minify": true},
       "css": {"minify": true},

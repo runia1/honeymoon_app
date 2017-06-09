@@ -19,7 +19,7 @@ const app = express();
 //DEFINE ALL STATIC ROUTES
 app.use(express.static(__dirname + '/default'));
 
-app.use('/redux', express.static(__dirname + '/../node_modules/redux'));
+app.use('/node_modules/redux', express.static(__dirname + '/../node_modules/redux'));
 
 app.use('/static-photos', express.static(__dirname + '/../photos'));
 
